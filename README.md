@@ -1,6 +1,6 @@
 # staking-crypto
 
-Calculateur de rendement de staking, en français, 100 % dans le navigateur : rendement **sans** et **avec** intérêts composés, **frais compris** (commission, gas, entrée et sortie), fréquence de compound optimale, scénarios enregistrés sur l'appareil, export CSV. Aucune donnée ne quitte votre navigateur.
+Calculateur de rendement de staking, en français, 100 % dans le navigateur : rendement **sans** et **avec** intérêts composés, **frais compris** (commission, gas, entrée et sortie), en dollars (USDC) ou en euros avec le cours du jour de Binance en option, fréquence de compound optimale, scénarios enregistrés sur l'appareil, export CSV. Aucune donnée ne quitte votre navigateur.
 
 État : spécification (J0). Voir [docs/SPEC.md](docs/SPEC.md) et [docs/DECISIONS.md](docs/DECISIONS.md).
 
