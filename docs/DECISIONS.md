@@ -23,7 +23,7 @@ Validé par Arnaud le 16 nov. 2026.
 ## D-004 ✅ Fréquence de compound optimale
 Avec un frais fixe par compound, le solde final n'augmente pas avec la fréquence : il passe par un maximum, puis baisse. L'outil calcule, pour chaque k entier de 1 à 365, le solde final, retient le meilleur (k*), et le compare à la fréquence choisie et à « sans compound ». C'est la fonction qui distingue l'outil. Il affiche aussi le **point mort** : le capital sous lequel un compound coûte plus qu'il ne rapporte à la fréquence choisie. Recherche exhaustive sur k, chaque solde calculé par la **forme fermée** de la récurrence M_{i+1} = M_i(1 + q) − g, avec q = APR(1 − c)/k : M_n = (M₀ − g/q)(1 + q)^n + g/q. Une puissance par k, donc 365 calculs quelle que soit la durée (une simulation période par période coûterait plus de 3 millions de pas sur 50 ans). La simulation pas à pas reste utilisée pour l'échéancier et le graphique ; un test vérifie que les deux donnent le même solde. En cas d'égalité, la fréquence la plus faible l'emporte (moins d'opérations). Validé par Arnaud le 16 nov. 2026.
 
-## D-005 ⚠️ Unité du scénario : jeton ou euro, cours constant facultatif
+## D-005 🔁 (remplacée par D-014 et D-015) Unité du scénario : jeton ou euro, cours constant facultatif
 Le calcul ne dépend pas de l'unité. L'utilisateur choisit l'unité affichée : un jeton (symbole libre, ex. « ETH ») ou l'euro. Tous les montants du scénario (montant staké, frais fixes) sont dans cette unité ; c'est à l'utilisateur de convertir un gas payé dans un autre jeton (aide sous le champ). En unité jeton, un **cours facultatif** en € permet d'afficher les équivalents en euros ; il est **constant** sur toute la durée (limite D-012). Pas d'appel à Binance en v1.0 : envisagé ensuite via `commun-crypto/binance`, en opt-in comme renfort D-013.
 
 ## D-006 ⚠️ APY effectif net, tous frais compris
@@ -35,7 +35,7 @@ Les scénarios nommés sont gardés dans le localStorage (via `commun-crypto/sto
 ## D-008 ⚠️ Export CSV et partage en opt-in
 CSV au format du programme (séparateur « ; », virgule décimale, BOM, comme dca D-015) : un fichier de comparaison (paramètres, puis une colonne par scénario) et un fichier d'échéancier (période, date relative, capital, reward net, frais, solde). Texte copiable. Lien de partage avec les paramètres dans le fragment `#partage?…`, jamais envoyé au serveur, proposé en opt-in, lu et retiré de la barre d'adresse comme renfort D-014.
 
-## D-009 ⚠️ Aucun appel réseau en v1.0
+## D-009 🔁 (remplacée par D-015) Aucun appel réseau en v1.0
 Tout est saisi à la main ; aucune requête externe, à l'ouverture comme à l'usage (vérifié à chaque PR). Les seules ressources sont celles du site, mises en cache par le service worker.
 
 ## D-010 ⚠️ Arrondis
@@ -49,3 +49,17 @@ La page « À propos et limites » et une note sous les résultats rappellent qu
 
 ## D-013 ⚠️ Code commun via le paquet commun-crypto
 Dépendance git épinglée sur le dernier tag de `commun-crypto` (v1.2.0 au 16 nov. 2026) : `money`, `format`, `parse` (saisie des nombres de renfort D-012), `storage`, `support`, thème, `Support.svelte`, `ThemeToggle.svelte`, plugin de service worker. Aucun fichier copié depuis pmpa-crypto. Le composant de graphique (`XYChart.svelte` de renfort-crypto) est repris par copie avec son origine en tête de fichier, ou déplacé dans commun-crypto si un troisième outil en a besoin.
+
+## D-014 ✅ Devise : dollar (USDC) par défaut, ou euro ; calcul en jetons
+Demande d'Arnaud (16 nov. 2026) : on achète le plus souvent en dollars. Remplace l'unité « jeton ou euro » de D-005. Même modèle que renfort D-019 : **une devise par scénario**, `USD` (par défaut) ou `EUR` ; le dollar est l'**USDC**, assimilé au dollar.
+- La simulation se fait **en jetons** : les rewards sont versés en jetons, et le rendement en jetons ne dépend pas du prix.
+- Le montant staké se saisit en jetons ou dans la devise (bascule) ; les **frais fixes** (compound, entrée, sortie) se saisissent dans la devise, parce qu'un gas se pense en dollars ; la commission reste en %.
+- Conversion au **cours** du jeton dans la devise, constant sur toute la durée (limite D-012) ; le cours est obligatoire dès qu'un montant est en devise ou qu'un frais fixe est non nul. Jeton USDC en dollars : cours 1.
+- Résultats en jetons et dans la devise ; avec un taux EUR/USDC, équivalent dans l'autre devise.
+- Changement de devise comme renfort D-019 : avec un taux, cours et frais convertis ; sans taux, l'outil demande (récupérer le taux, garder les montants, annuler). Jamais de conversion silencieuse. CSV et lien de partage portent la devise (`d=usd` / `d=eur`).
+
+## D-015 ✅ Cours du jour et taux EUR/USDC sur Binance, en opt-in
+Remplace D-009 et le « pas d'appel à Binance » de D-005. Comme renfort D-013 et D-019 : une seule requête `/api/v3/ticker/price` **sans paramètre** (liste publique de tous les cours) ; l'outil cherche le jeton dans la réponse, Binance ne voit que l'adresse IP. Consentement explicite et mémorisé avant le premier appel ; « Saisir à la main » referme l'encart sans rien envoyer ; autorisation retirable d'un clic. Aucune requête à l'ouverture de la page (vérifié à chaque PR). Chemin du cours en dollars : XUSDC ; sinon XUSDT ÷ USDCUSDT ; sinon prix en euros × EURUSDC. En euros : chemin de `priceEur` (commun D-006). Cours arrondi comme pmpa D-030, chemin affiché sous le champ, effacé si l'utilisateur modifie le cours ou le jeton. Jeton absent de Binance : l'outil le dit et demande le cours.
+
+## D-016 ⚠️ Code de devise déplacé dans commun-crypto
+`src/lib/core/currency.ts` de renfort-crypto (renfort D-019) devait rejoindre commun-crypto dès qu'un second outil aurait besoin du dollar : c'est le cas. Avant J1 : PR dans commun-crypto (`currency` et ses tests, version mineure **v1.3.0**, tag par Arnaud) ; staking-crypto épingle ce tag. renfort-crypto passera sur le paquet dans une PR séparée, sans changement de comportement.

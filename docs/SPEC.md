@@ -17,20 +17,23 @@ L'outil **ne calcule aucun impôt** et ne prédit aucun prix (D-011, D-012).
 
 | Champ | Détail |
 |---|---|
-| Montant staké | > 0, dans l'**unité du scénario** : un jeton (ex. « ETH ») ou l'euro (D-005) |
+| Devise | Dollar (USDC, **par défaut**) ou euro, pour tous les montants en monnaie du scénario (D-014) |
+| Jeton | Symbole libre (ex. « ETH ») ; sert aussi à chercher le cours sur Binance |
+| Montant staké | > 0, saisi en jetons ou dans la devise (bascule), converti au cours (D-014) |
 | Taux | > 0, en %, avec le type **APR** ou **APY** (D-002) |
 | Durée | > 0, en jours, mois ou années ; 50 ans au plus |
 | Fréquence de compound | Aucun, quotidien, hebdomadaire, mensuel (D-003) ; option « personnalisée » (nombre de compounds par an) |
 | Commission | En %, dans [0, 100[, prélevée sur les rewards (D-003) ; 0 si le taux affiché est déjà net |
-| Frais par compound | Montant fixe ≥ 0, dans l'unité du scénario (gas d'un claim + restake) (D-003, D-004) |
-| Frais d'entrée et de sortie | Montants fixes ≥ 0, payés une fois (stake, unstake et dernier claim) |
-| Cours | Facultatif : prix d'un jeton en €, constant, pour afficher les équivalents en euros (D-005) |
+| Frais par compound | Montant fixe ≥ 0, dans la devise (gas d'un claim + restake), converti en jetons au cours (D-003, D-004, D-014) |
+| Frais d'entrée et de sortie | Montants fixes ≥ 0, dans la devise, payés une fois (stake, unstake et dernier claim) |
+| Cours | Prix d'un jeton dans la devise, constant sur la durée : saisi, ou « Cours du jour » sur Binance en opt-in (D-015). Obligatoire dès qu'un montant est en devise ou qu'un frais fixe est non nul |
+| Taux EUR/USDC | Facultatif : saisi, ou paire EURUSDC sur Binance en opt-in ; sert au changement de devise (D-014) |
 
 ## 3. Calcul
 
 Code prévu : `src/lib/core/staking.ts`, logique pure, testée par Vitest. Calcul en décimal exact (decimal.js), jamais en `number` (D-010).
 
-Notations : M montant staké, APR taux annuel nominal brut, c commission, k compounds par an, T durée en années, g frais par compound, e frais d'entrée, s frais de sortie. Année = 365 jours, mois = 1/12 année (D-003).
+La simulation se fait **en jetons** (les rewards sont versés en jetons) ; les frais fixes saisis en devise sont convertis en jetons au cours, et les résultats sont affichés en jetons et dans la devise, au même cours constant (D-014). Notations : M montant staké (jetons), APR taux annuel nominal brut, c commission, k compounds par an, T durée en années, g, e, s frais par compound, d'entrée et de sortie, en jetons (frais en devise ÷ cours). Année = 365 jours, mois = 1/12 année (D-003).
 
 | Résultat | Formule |
 |---|---|
@@ -61,8 +64,8 @@ Cas limites, chacun signalé par un statut, jamais par une erreur silencieuse :
 
 Une page, deux colonnes sur grand écran (formulaire à gauche, résultats à droite), une seule en dessous de 900 px. Calcul en direct à chaque saisie, comme renfort D-012.
 
-- **Votre staking** : unité (jeton ou €), montant, taux et type APR/APY (groupe radio), durée et unité, commission, fréquence de compound, frais (par compound, entrée, sortie), cours facultatif.
-- **Résultat** : tableau côte à côte « Sans compound » / « Avec compound (fréquence choisie) » / « Fréquence optimale » (colonne masquée si elle coïncide avec la fréquence choisie) ; lignes : rewards nets, solde final, frais totaux, commission prélevée, nombre de compounds, APY effectif ; écart entre les colonnes en clair. Équivalents en euros si un cours est saisi.
+- **Votre staking** : devise ($ par défaut / €, groupe radio ; conversion ou choix explicite sans taux, comme renfort D-019), taux EUR/USDC avec « Taux du jour », jeton, cours avec « Cours du jour » (Binance, consentement D-015), montant en jetons ou en devise, taux et type APR/APY (groupe radio), durée et unité, commission, fréquence de compound, frais en devise (par compound, entrée, sortie).
+- **Résultat** : tableau côte à côte « Sans compound » / « Avec compound (fréquence choisie) » / « Fréquence optimale » (colonne masquée si elle coïncide avec la fréquence choisie) ; lignes : rewards nets, solde final, frais totaux, commission prélevée, nombre de compounds, APY effectif ; écart entre les colonnes en clair. Montants en jetons et dans la devise ; avec un taux EUR/USDC, équivalent dans l'autre devise sous le chiffre principal.
 - **Phrase de synthèse** annoncée aux lecteurs d'écran (`aria-live`) : par exemple « Compounder chaque semaine rapporte 0,12 ETH de plus que ne rien faire ; au-delà d'un compound tous les 9 jours, les frais mangent le gain. »
 - **Graphique** : solde dans le temps, une courbe par colonne (SVG maison, lecture au clavier, comme renfort D-007) ; second graphique facultatif : solde final selon le nombre de compounds par an, avec l'optimum marqué (D-004).
 - **Scénarios** (D-007) : enregistrer sous un nom, liste, recharger, renommer, supprimer, comparer deux scénarios enregistrés.
@@ -70,15 +73,21 @@ Une page, deux colonnes sur grand écran (formulaire à gauche, résultats à dr
 - **À propos et limites** (`#a-propos`) : ce que fait l'outil, vos données, méthode et formules, limites (D-012), avertissement, contribuer, auteur et soutien.
 - En-tête, thème auto / clair / sombre, pied de page « Créé par Arnaud (Patart50) · Soutenir le projet ».
 
-Principes communs : 100 % dans le navigateur, aucune requête externe, hors ligne (service worker), 375 px sans débordement, WCAG 2 AA vérifié avec axe-core.
+Principes communs : 100 % dans le navigateur, aucune requête externe sans consentement (D-015), hors ligne (service worker), 375 px sans débordement, WCAG 2 AA vérifié avec axe-core.
 
-## 5. Jalons
+## 5. Cours et devise
+
+- **Binance** (`commun-crypto/binance`, D-015) : `loadTicker` (liste publique de tous les cours, deux hôtes), sans paramètre : la crypto n'est pas envoyée.
+- **Devise** (`commun-crypto/currency`, D-016, repris de renfort D-019) : `formatter` ($ / €), `convert`, `eurUsdcRate` (EURUSDC), `priceUsdc` (XUSDC ; sinon XUSDT ÷ USDCUSDT ; sinon prix en euros × EURUSDC), `priceEur` (paire EUR, puis USDT, USDC, BTC). Chemin de conversion affiché sous le champ.
+- Jeton **USDC** en dollars : cours fixé à 1, sans appel.
+
+## 6. Jalons
 
 - **J0** Spec v0.1, décisions, licence AGPL-3.0 (cette PR).
-- **J1** Squelette Svelte 5 + Vite + TS + Vitest, commun-crypto au dernier tag, moteur de calcul testé (formules, cas limites, fréquence optimale, concordance avec la formule d'école), CI et déploiement Pages (page d'attente), À propos minimal avec auteur et soutien.
+- **J1** Squelette Svelte 5 + Vite + TS + Vitest, commun-crypto au tag qui contient `currency` (D-016), moteur de calcul testé (formules, cas limites, fréquence optimale, concordance avec la formule d'école), CI et déploiement Pages (page d'attente), À propos minimal avec auteur et soutien.
 - **J2** Interface complète : saisie, comparaison, graphiques, scénarios enregistrés, export CSV, partage.
 - **J3** v1.0 : page « À propos et limites » complète, hors ligne vérifié, accessibilité (axe-core), release.
 
-## 6. Hors périmètre v1.0
+## 7. Hors périmètre v1.0
 
-Calcul d'impôt ; prix futur du jeton et inflation de l'offre (rendement réel) ; taux variable dans le temps ; slashing ; période de déblocage (unbonding) ; liquid staking et ses décotes ; ajout ou retrait en cours de route ; cours récupéré sur Binance (envisagé après la v1.0, D-005) ; suivi de positions réelles (D-001) ; connexion à une plateforme ou à un wallet.
+Calcul d'impôt ; prix futur du jeton et inflation de l'offre (rendement réel) ; taux variable dans le temps ; slashing ; période de déblocage (unbonding) ; liquid staking et ses décotes ; ajout ou retrait en cours de route ; suivi de positions réelles (D-001) ; connexion à une plateforme ou à un wallet.
