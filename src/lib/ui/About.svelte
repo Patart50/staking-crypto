@@ -1,7 +1,7 @@
 <script lang="ts">
   /**
    * Page « À propos et limites » : ce que fait l'outil, ce qu'il envoie, sa méthode et ses limites (D-012).
-   * Structure reprise de renfort-crypto (commit 868331f, About.svelte). Version minimale (J1), complétée en J3.
+   * Structure reprise de renfort-crypto (commit 868331f, About.svelte). Complétée en J3.
    */
   import { AUTHOR, SPONSORS_URL } from 'commun-crypto/support';
   import Support from 'commun-crypto/ui/Support.svelte';
@@ -18,7 +18,7 @@
   </header>
 
   <section>
-    <h2>Ce que fera l'outil</h2>
+    <h2>Ce que fait l'outil</h2>
     <p>
       Comparer le rendement d'un staking <strong>sans</strong> et <strong>avec</strong> intérêts composés, commission du validateur et frais fixes (gas, entrée,
       sortie) compris, et trouver la fréquence de compound qui rapporte le plus. Avec un frais fixe par compound, compounder plus souvent n'est pas toujours
@@ -29,8 +29,9 @@
   <section>
     <h2>Vos données</h2>
     <p>
-      Tout est calculé dans ce navigateur. Pas de compte, pas de serveur, pas de mesure d'audience. Seule exception prévue, avec votre accord : le cours du jour
-      d'un jeton, lu dans la liste publique des cours de Binance, sans que le jeton choisi lui soit transmis.
+      Tout est calculé dans ce navigateur. Pas de compte, pas de serveur, pas de mesure d'audience. Le formulaire et vos scénarios enregistrés restent dans ce
+      navigateur. Seule exception, avec votre accord : « Cours du jour » et « Taux du jour » lisent la liste publique de tous les cours de Binance ; le jeton choisi ne
+      lui est pas transmis, seule votre adresse IP est visible. L'autorisation se retire d'un clic sous le formulaire.
     </p>
   </section>
 
@@ -38,7 +39,9 @@
     <h2>Méthode</h2>
     <ul>
       <li>La simulation se fait en jetons : les rewards sont versés en jetons. Un APY saisi est converti en APR (capitalisation quotidienne), jamais divisé.</li>
-      <li>La commission est prélevée sur chaque reward ; les frais de compound sont un montant fixe par opération.</li>
+      <li>La commission est prélevée sur chaque reward ; les frais de compound sont un montant fixe par opération, saisi en dollars ou en euros et converti en jetons au cours.</li>
+      <li>Pas de compound à la toute fin : on réclame et on retire, ce que couvrent les frais de sortie.</li>
+      <li>La meilleure fréquence est cherchée parmi 1 à 365 compounds par an ; à solde égal, la moins fréquente l'emporte, et ne rien faire passe avant tout.</li>
       <li>
         Chaque choix est publié dans le <a href={`${repo}/blob/main/docs/DECISIONS.md`} target="_blank" rel="noopener">journal des décisions</a>, les formules
         dans la <a href={`${repo}/blob/main/docs/SPEC.md`} target="_blank" rel="noopener">spécification</a>.

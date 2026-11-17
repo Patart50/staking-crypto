@@ -68,7 +68,7 @@ Une page, deux colonnes sur grand écran (formulaire à gauche, résultats à dr
 - **Résultat** : tableau côte à côte « Sans compound » / « Avec compound (fréquence choisie) » / « Fréquence optimale » (colonne masquée si elle coïncide avec la fréquence choisie) ; lignes : rewards nets, solde final, frais totaux, commission prélevée, nombre de compounds, APY effectif ; écart entre les colonnes en clair. Montants en jetons et dans la devise ; avec un taux EUR/USDC, équivalent dans l'autre devise sous le chiffre principal.
 - **Phrase de synthèse** annoncée aux lecteurs d'écran (`aria-live`) : par exemple « Compounder chaque semaine rapporte 0,12 ETH de plus que ne rien faire ; au-delà d'un compound tous les 9 jours, les frais mangent le gain. »
 - **Graphique** : solde dans le temps, une courbe par colonne (SVG maison, lecture au clavier, comme renfort D-007) ; second graphique facultatif : solde final selon le nombre de compounds par an, avec l'optimum marqué (D-004).
-- **Scénarios** (D-007) : enregistrer sous un nom, liste, recharger, renommer, supprimer, comparer deux scénarios enregistrés.
+- **Scénarios** (D-007, D-019) : enregistrer sous un nom (un nom pris remplace l'ancien), liste, recharger, supprimer ; comparaison croisée reportée après la v1.0.
 - **Garder ou partager** (D-008) : CSV de la comparaison, CSV de l'échéancier période par période, texte copiable, lien de partage en opt-in.
 - **À propos et limites** (`#a-propos`) : ce que fait l'outil, vos données, méthode et formules, limites (D-012), avertissement, contribuer, auteur et soutien.
 - En-tête, thème auto / clair / sombre, pied de page « Créé par Arnaud (Patart50) · Soutenir le projet ».
@@ -85,7 +85,7 @@ Principes communs : 100 % dans le navigateur, aucune requête externe sans conse
 
 - **J0** Spec v0.1, décisions, licence AGPL-3.0 (cette PR).
 - **J1** ✅ Squelette Svelte 5 + Vite + TS + Vitest, commun-crypto au tag qui contient `currency` (D-016), moteur de calcul testé (formules, cas limites, fréquence optimale, concordance avec la formule d'école), CI et déploiement Pages (page d'attente), À propos minimal avec auteur et soutien.
-- **J2** Interface complète : saisie, comparaison, graphiques, scénarios enregistrés, export CSV, partage.
+- **J2** ✅ Interface complète : saisie, comparaison, graphiques, scénarios enregistrés, export CSV, partage.
 - **J3** v1.0 : page « À propos et limites » complète, hors ligne vérifié, accessibilité (axe-core), release.
 
 ## 7. Hors périmètre v1.0

@@ -69,3 +69,13 @@ Précise D-003 et D-004. Un compound a lieu à la fin de chaque période complè
 
 ## D-018 ✅ Dépendance commun-crypto épinglée sur un commit, le temps du tag v1.3.0
 J1 a besoin de `commun-crypto/currency` (D-016), en PR #5 de commun-crypto. En attendant le tag, `package.json` épingle le commit de la branche (`0f51ff6`) ; il passe sur `#v1.3.0` dès le tag posé, avant la fusion de J1 si possible, sinon dans la PR J2. Même contenu, aucun changement de code.
+
+## D-019 ⚠️ Interface J2 : synthèse franche, deux graphiques, scénarios sans comparaison croisée
+- **Synthèse** (`summary`, testée) : une phrase selon le meilleur des trois choix (sans compound, choix de l'utilisateur, meilleure fréquence). Elle dit « Ne compoundez pas » quand ne rien faire l'emporte, chiffre la perte d'un choix déficitaire, et qualifie de **gain marginal** un gain inférieur à 0,1 % du montant staké sur toute la durée. Annoncée aux lecteurs d'écran (`aria-live`).
+- **Colonnes** : la colonne « Meilleure fréquence » est masquée quand elle coïncide avec le choix ; le meilleur choix porte un badge. À égalité, ne rien faire, puis le choix de l'utilisateur, l'emportent (comme `compare`).
+- **Graphiques** (`LinesChart.svelte`, adapté de renfort `XYChart`, plusieurs séries) : solde dans le temps (sans compound en pointillé, choix, meilleure fréquence, montant staké en référence) ; solde final selon le nombre de compounds par an (1 à 365), optimum et choix marqués, « sans compound » en référence. Axe des soldes resserré sur les données. Lecture au clavier (flèches, Début, Fin).
+- **Scénarios enregistrés** (D-007) : enregistrer sous un nom (un nom déjà pris remplace l'ancien), charger, supprimer ; 30 au plus. La comparaison de deux scénarios enregistrés côte à côte est **reportée après la v1.0** : la comparaison sans / avec compound couvre l'essentiel, et charger un scénario suffit à le revoir.
+- **Formulaire** : unité du montant (jeton ou devise), type de taux, unité de durée et fréquence en listes déroulantes ; devise en groupe radio, comme renfort. Cours fixé à 1 pour l'USDC en dollars (D-014), champ désactivé.
+
+## D-020 ✅ commun-crypto épinglé sur le commit de fusion de la v1.3.0
+Remplace le commit de branche de D-018 : `938d1cb`, fusion de la PR #5 de commun-crypto, contenu de la v1.3.0. Passage sur `#v1.3.0` dès le tag posé par Arnaud (même contenu).

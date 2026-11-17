@@ -1,20 +1,19 @@
 # staking-crypto — Passation
 
 ## État (17 nov. 2026)
-J0 fusionné (PR #1 à #3). **J1 en PR** (branche `j1-squelette`) : squelette Svelte 5 + Vite + TS + Vitest, version 0.1.0 ; moteur `src/lib/core/staking.ts` testé (28 tests) ; page d'accueil d'attente avec l'exemple de référence calculé par le moteur ; page « À propos et limites » minimale avec Auteur et soutien ; CI et déploiement Pages. Décisions D-017 (pas de compound à la toute fin) à valider, D-018 (dépendance épinglée sur un commit) actée.
+J0 et J1 fusionnés. **J2 en PR** (branche `j2-interface`, v0.2.0) : calculateur complet. Formulaire (dollar par défaut, cours et taux du jour Binance en opt-in, montant en jetons ou en devise, APR/APY, durée, commission, fréquence, frais en devise), synthèse, comparaison en trois colonnes, deux graphiques, scénarios enregistrés, CSV de la comparaison et de l'échéancier, résumé copiable, lien de partage. 49 tests. D-019 à valider, D-020 actée.
 
-commun-crypto : **PR #5** (module `currency`, v1.3.0, commun D-011), à fusionner et taguer `v1.3.0` par Arnaud.
+commun-crypto PR #5 fusionnée ; **tag `v1.3.0` à poser par Arnaud** (staking épingle en attendant le commit de fusion `938d1cb`, D-020).
 
 ## À faire par Arnaud
-1. Fusionner commun-crypto PR #5 et poser le tag `v1.3.0`.
-2. Relire la PR J1 de staking-crypto ; valider D-006 à D-008, D-010 à D-013, D-016, D-017.
-3. Vérifier que Pages est activé (Settings → Pages → Source « GitHub Actions »).
+1. Poser le tag `v1.3.0` sur commun-crypto (release « v1.3.0 — Euro ou dollar (USDC) »).
+2. Relire et fusionner la PR J2 ; valider D-019 et les décisions ⚠️ restantes (D-006 à D-008, D-010 à D-013, D-016, D-017).
 
 ## Prochaine étape (Claude)
-- Passer `commun-crypto` sur `#v1.3.0` dans `package.json` dès le tag (D-018).
-- J2 sur la branche `j2-interface` : formulaire (devise $ par défaut, jeton, cours du jour Binance en opt-in, montant en jetons ou en devise, taux APR/APY, durée, commission, fréquence, frais en devise), conversion des frais en jetons, comparaison en trois colonnes, phrase de synthèse, graphiques (XYChart repris de renfort), scénarios enregistrés, export CSV, lien de partage.
+- Passer `commun-crypto` sur `#v1.3.0` dès le tag.
+- J3 (v1.0.0) sur la branche `j3-v1` : page « À propos et limites » complète (formules, exemple chiffré, inflation, limites), hors ligne vérifié, accessibilité sur tous les états, README avec captures, release `v1.0.0` par Arnaud.
+- renfort-crypto : passer sur `commun-crypto/currency` (PR séparée, sans changement de comportement).
 
 ## Points d'attention
-- Exemple de référence (en jetons, D-017) : 1 ETH, APR 4 %, commission 10 %, 0,0002 ETH par compound, 1 an. Sans compound : 1,036 ETH. Meilleure fréquence : 2 par an (un compound), 1,0361204 ETH. Compound quotidien : 0,96252783 ETH, perte ; point mort quotidien 2,03 ETH. L'écran doit savoir dire « ne compoundez pas » ou « à peine mieux ».
-- Recherche de la fréquence optimale : 365 calculs en forme fermée ; moins d'une seconde sur 50 ans (testé).
-- Vérifier à chaque PR : aucune requête externe sans consentement, aucune à l'ouverture (D-015) ; QR codes décodés identiques aux adresses de `support.ts`.
+- Exemple de référence (D-017) : 1 ETH, APR 4 %, commission 10 %, 0,50 $ par compound à 2 500 $ (0,0002 ETH), 1 an. Sans compound 1,036 ETH ; quotidien 0,96252783 ETH (−183,68 $ par rapport à ne rien faire) ; meilleure fréquence 2 par an, 1,0361204 ETH (+0,30 $, gain marginal) ; point mort quotidien 2,03 ETH.
+- Vérifié dans Chromium à chaque PR : axe-core sur l'accueil vide, les résultats, les scénarios, À propos et la fenêtre de soutien (1 280 px clair, 375 px sombre) ; aucune requête externe sans consentement ; Binance simulé (cours ETHUSDC, taux EURUSDC, conversion en euros) ; lien de partage aller-retour ; QR codes décodés.
