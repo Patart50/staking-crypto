@@ -225,17 +225,21 @@ export function compoundSchedule(input: StakingInput, perYear: number): Schedule
 
 // ---------- Fréquence optimale et comparaison ----------
 
+/** Solde final pour chaque fréquence de 1 à 365 compounds par an (forme fermée, D-004). */
+export function frequencyCurve(input: StakingInput): Outcome[] {
+  const out: Outcome[] = [];
+  for (let k = 1; k <= DAYS_PER_YEAR; k++) out.push(compoundOutcome(input, k));
+  return out;
+}
+
 /**
  * Meilleure fréquence de 1 à 365 compounds par an (D-004) ; à solde égal, la
  * moins fréquente. Ne dit pas si compounder vaut mieux que ne rien faire :
  * c'est le rôle de `compare`.
  */
-export function optimalOutcome(input: StakingInput): Outcome {
-  let best = compoundOutcome(input, 1);
-  for (let k = 2; k <= DAYS_PER_YEAR; k++) {
-    const o = compoundOutcome(input, k);
-    if (o.finalBalance.gt(best.finalBalance)) best = o;
-  }
+export function optimalOutcome(input: StakingInput, curve: Outcome[] = frequencyCurve(input)): Outcome {
+  let best = curve[0];
+  for (const o of curve) if (o.finalBalance.gt(best.finalBalance)) best = o;
   return best;
 }
 
@@ -245,15 +249,58 @@ export interface Comparison {
   optimal: Outcome;
   /** Meilleur choix : ne pas compounder, la fréquence choisie, ou la fréquence optimale. */
   best: 'simple' | 'chosen' | 'optimal';
+  /** Solde final pour 1 à 365 compounds par an. */
+  curve: Outcome[];
 }
 
 /** Les trois colonnes de l'écran (SPEC § 4). `perYear` = 0 : l'utilisateur ne compounde pas. */
 export function compare(input: StakingInput, perYear: number): Comparison {
   const simple = simpleOutcome(input);
-  const optimal = optimalOutcome(input);
-  const chosen = perYear === 0 ? simple : compoundOutcome(input, perYear);
+  const curve = frequencyCurve(input);
+  const optimal = optimalOutcome(input, curve);
+  const chosen = perYear === 0 ? simple : curve[perYear - 1] ?? compoundOutcome(input, perYear);
   const top = D.max(simple.finalBalance, chosen.finalBalance, optimal.finalBalance);
   // À égalité, la solution la plus simple l'emporte : ne rien faire, puis le choix de l'utilisateur.
   const best = simple.finalBalance.eq(top) ? 'simple' : chosen.finalBalance.eq(top) ? 'chosen' : 'optimal';
-  return { simple, chosen, optimal, best };
+  return { simple, chosen, optimal, best, curve };
+}
+
+// ---------- Séries pour le graphique ----------
+
+export interface Point {
+  /** Jours depuis le début. */
+  day: Dec;
+  /** Solde : capital et rewards accumulés ; frais de sortie déduits au dernier point. */
+  balance: Dec;
+}
+
+/** Garde au plus `max` points, le premier et le dernier compris. */
+function thin(points: Point[], max: number): Point[] {
+  if (points.length <= max) return points;
+  const step = (points.length - 1) / (max - 1);
+  return Array.from({ length: max }, (_, i) => points[Math.round(i * step)]);
+}
+
+/** Solde dans le temps sans compound : droite, frais de sortie au dernier point. */
+export function simpleSeries(input: StakingInput, max = 120): Point[] {
+  validate(input);
+  const start = input.amount.minus(input.entryFee);
+  const rewards = start.times(nominalApr(input)).times(new D(1).minus(input.commission)).times(input.years);
+  const days = input.years.times(DAYS_PER_YEAR);
+  const pts: Point[] = [];
+  for (let i = 0; i < max; i++) {
+    const share = new D(i).div(max - 1);
+    const day = days.times(share);
+    const balance = start.plus(rewards.times(share));
+    pts.push({ day, balance: i === max - 1 ? balance.minus(input.exitFee) : balance });
+  }
+  return pts;
+}
+
+/** Solde dans le temps avec compound : après chaque compound, puis à la sortie. */
+export function compoundSeries(input: StakingInput, perYear: number, max = 120): Point[] {
+  const start = input.amount.minus(input.entryFee);
+  const pts: Point[] = [{ day: new D(0), balance: start }];
+  for (const r of compoundSchedule(input, perYear)) pts.push({ day: r.day, balance: r.balance });
+  return thin(pts, max);
 }

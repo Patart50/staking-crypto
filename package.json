@@ -1,7 +1,7 @@
 {
   "name": "staking-crypto",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -25,7 +25,7 @@
   "dependencies": {
     "@fontsource-variable/public-sans": "^5.3.0",
     "@fontsource-variable/source-serif-4": "^5.3.0",
-    "commun-crypto": "git+https://github.com/Patart50/commun-crypto.git#0f51ff62a79ddee7fe71ffbbcb302ee5bdbb5a30",
+    "commun-crypto": "git+https://github.com/Patart50/commun-crypto.git#938d1cbe962c583e0dddcb83bab1649b16356b83",
     "decimal.js": "^10.6.0",
     "qrcode": "^1.5.4"
   }
