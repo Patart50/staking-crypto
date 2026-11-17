@@ -7,6 +7,7 @@ import { D, type Dec } from 'commun-crypto/money';
 import { rateText, SYMBOL } from 'commun-crypto/currency';
 import { defaultForm, frequencyText, sanitize, type Form, type Result } from '../core/form';
 import { compoundSchedule, type Outcome } from '../core/staking';
+import { addDays } from '../core/dates';
 
 const BOM = '﻿';
 const n = (d: Dec, places: number) => d.toDecimalPlaces(places, D.ROUND_HALF_UP).toFixed().replace('.', ',');
@@ -35,7 +36,7 @@ function parameters(r: Result): string[][] {
   if (v.amountMoney) out.push([`Montant staké (${c})`, money(v.amountMoney)]);
   out.push([`Taux ${v.rateType} (%)`, percent(v.input.rate)]);
   if (v.rateType === 'APY') out.push(['APR équivalent (%)', percent(r.apr)]);
-  out.push(['Durée', `${n(v.duration.value, 4)} ${UNIT_LABEL[v.duration.unit]}`], ['Commission (%)', percent(v.input.commission)]);
+  out.push(['Date de début', v.startDate], ['Durée', `${n(v.duration.value, 4)} ${UNIT_LABEL[v.duration.unit]}`], ['Commission (%)', percent(v.input.commission)]);
   out.push(['Fréquence choisie', frequencyText(v.perYear)]);
   out.push([`Frais par compound (${c})`, money(v.fees.compound)], [`Frais d'entrée (${c})`, money(v.fees.entry)], [`Frais de sortie (${c})`, money(v.fees.exit)]);
   return out;
@@ -72,10 +73,10 @@ export function scheduleCsv(r: Result): string {
   const k = r.values.perYear || r.comparison.optimal.perYear;
   const c = SYMBOL[r.values.currency];
   const p = r.values.price;
-  const head = ['Période', 'Jour', 'Capital (jetons)', 'Reward net (jetons)', 'Frais (jetons)', 'Solde (jetons)', ...(p ? [`Solde au cours constant (${c})`] : [])];
+  const head = ['Période', 'Date', 'Jour', 'Capital (jetons)', 'Reward net (jetons)', 'Frais (jetons)', 'Solde (jetons)', ...(p ? [`Solde au cours constant (${c})`] : [])];
   const out: string[][] = [['staking-crypto', `Échéancier, ${frequencyText(k)}`], [], head];
   for (const row of compoundSchedule(r.values.input, k))
-    out.push([String(row.period), n(row.day, 2), tokens(row.capital), tokens(row.reward), tokens(row.fee), tokens(row.balance), ...(p ? [money(row.balance.times(p))] : [])]);
+    out.push([String(row.period), addDays(r.values.startDate, row.day.floor().toNumber()), n(row.day, 2), tokens(row.capital), tokens(row.reward), tokens(row.fee), tokens(row.balance), ...(p ? [money(row.balance.times(p))] : [])]);
   return rows(out);
 }
 
@@ -107,6 +108,7 @@ const KEYS: Record<string, keyof Form> = {
   rt: 'rateType',
   t: 'duration',
   tu: 'durationUnit',
+  sd: 'startDate',
   c: 'commission',
   f: 'frequency',
   k: 'perYear',

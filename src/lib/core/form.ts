@@ -7,6 +7,7 @@
  */
 import { D, type Dec } from 'commun-crypto/money';
 import { isCurrency, readAmount, type Currency } from 'commun-crypto/currency';
+import { isIsoDate, today } from './dates';
 import {
   breakEvenCapital,
   compare,
@@ -42,6 +43,8 @@ export interface Form {
   rateType: RateType;
   duration: string;
   durationUnit: DurationUnit;
+  /** Date de début AAAA-MM-JJ ; vide : aujourd'hui (D-021). */
+  startDate: string;
   commission: string;
   frequency: Frequency;
   /** Compounds par an, fréquence personnalisée. */
@@ -52,8 +55,10 @@ export interface Form {
   exitFee: string;
 }
 
-export type Field = 'fx' | 'asset' | 'price' | 'amount' | 'rate' | 'duration' | 'commission' | 'perYear' | 'compoundFee' | 'entryFee' | 'exitFee';
-export const TEXT_FIELDS: readonly Field[] = ['fx', 'asset', 'price', 'amount', 'rate', 'duration', 'commission', 'perYear', 'compoundFee', 'entryFee', 'exitFee'];
+export type Field = 'fx' | 'asset' | 'price' | 'amount' | 'rate' | 'duration' | 'startDate' | 'commission' | 'perYear' | 'compoundFee' | 'entryFee' | 'exitFee';
+export const TEXT_FIELDS: readonly Field[] = ['fx', 'asset', 'price', 'amount', 'rate', 'duration', 'startDate', 'commission', 'perYear', 'compoundFee', 'entryFee', 'exitFee'];
+/** Première bougie journalière de Binance. */
+export const FIRST_DATE = '2017-07-14';
 export const FREQUENCY_LIST: readonly Frequency[] = ['none', 'daily', 'weekly', 'monthly', 'custom'];
 const RATE_TYPES: readonly RateType[] = ['APR', 'APY'];
 const DURATION_UNITS: readonly DurationUnit[] = ['days', 'months', 'years'];
@@ -71,6 +76,7 @@ export function defaultForm(): Form {
     rateType: 'APR',
     duration: '1',
     durationUnit: 'years',
+    startDate: '',
     commission: '',
     frequency: 'weekly',
     perYear: '24',
@@ -118,6 +124,10 @@ export interface Values {
   /** Compounds par an ; 0 sans compound. */
   perYear: number;
   rateType: RateType;
+  /** Date de début (aujourd'hui si non saisie). */
+  startDate: string;
+  /** La date de début a été saisie. */
+  startGiven: boolean;
   /** Durée telle que saisie, pour l'affichage. */
   duration: { value: Dec; unit: DurationUnit };
   /** Entrée du moteur, en jetons. */
@@ -155,6 +165,14 @@ export function parseForm(form: Form): ParseResult {
     else if (o.percent && v.gte(100)) errors[field] = `${o.label} : doit être inférieur à 100 %.`;
     return v;
   };
+
+  const now = today();
+  const startRaw = form.startDate.trim();
+  if (startRaw) {
+    if (!isIsoDate(startRaw)) errors.startDate = 'Date de début : date invalide.';
+    else if (startRaw > now) errors.startDate = 'Date de début : aujourd’hui au plus tard.';
+    else if (startRaw < FIRST_DATE) errors.startDate = 'Date de début : pas avant le 14 juillet 2017 (premiers cours de Binance).';
+  }
 
   const asset = form.asset.trim().toUpperCase();
   if (asset && !/^[A-Z0-9]{1,15}$/.test(asset)) errors.asset = 'Jeton : lettres et chiffres seulement (ex. ETH).';
@@ -220,6 +238,8 @@ export function parseForm(form: Form): ParseResult {
       fees,
       frequency: form.frequency,
       perYear,
+      startDate: startRaw || now,
+      startGiven: startRaw !== '',
       rateType: form.rateType,
       duration: { value: duration, unit: form.durationUnit },
       input,

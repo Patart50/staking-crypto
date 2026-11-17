@@ -32,8 +32,10 @@
     fmtY: (v: number) => string;
     /** Ligne horizontale de référence (ex. montant staké). */
     reference?: { y: Dec; label: string } | null;
+    /** Repère vertical (ex. aujourd'hui), en valeur de x. */
+    vertical?: { x: number; label: string } | null;
   }
-  let { title, summary, series, markers = [], xLabel, fmtX, fmtY, reference = null }: Props = $props();
+  let { title, summary, series, markers = [], xLabel, fmtX, fmtY, reference = null, vertical = null }: Props = $props();
 
   let width = $state(640);
   /** Position explorée, en valeur de x. */
@@ -167,6 +169,10 @@
         <text class="axis-title" x={m.left + plotW / 2} y={height - 4} text-anchor="middle">{xLabel}</text>
       </g>
       <g aria-hidden="true">
+        {#if vertical}
+          <line class="vline" x1={x(vertical.x)} x2={x(vertical.x)} y1={m.top} y2={m.top + plotH} />
+          <text class="vlabel" x={x(vertical.x) + 5} y={m.top + 12}>{vertical.label}</text>
+        {/if}
         {#if reference}
           <line class="refline" x1={m.left} x2={m.left + plotW} y1={y(reference.y.toNumber())} y2={y(reference.y.toNumber())} />
         {/if}
@@ -270,6 +276,15 @@
     stroke: var(--series-muted);
     stroke-width: 1.5;
     stroke-dasharray: 2 3;
+  }
+  .vline {
+    stroke: var(--rule-strong);
+    stroke-width: 1.5;
+    stroke-dasharray: 2 3;
+  }
+  .vlabel {
+    font-size: 11.5px;
+    fill: var(--muted);
   }
   .dot {
     stroke: var(--surface);

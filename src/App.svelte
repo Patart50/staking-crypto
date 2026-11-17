@@ -6,6 +6,7 @@
   import { AUTHOR } from 'commun-crypto/support';
   import { app } from './lib/state/app.svelte';
   import { compute, parseForm, type Field } from './lib/core/form';
+  import { today } from './lib/core/dates';
   import { SUPPORT_INTRO } from './lib/ui/supportIntro';
   import About from './lib/ui/About.svelte';
   import StakingForm from './lib/ui/StakingForm.svelte';
@@ -46,6 +47,12 @@
 
   const parsed = $derived(parseForm(app.form));
   const result = $derived(parsed.ok ? compute(parsed.values) : null);
+  // Historique des cours chargé de lui-même si Binance est déjà autorisé et la date de début passée (D-021).
+  $effect(() => {
+    if (!parsed.ok) return;
+    const v = parsed.values;
+    if (v.startGiven && v.startDate < today() && v.asset) app.autoHistory(v.asset, v.currency, v.startDate);
+  });
   const errors = $derived<Partial<Record<Field, string>>>(parsed.ok ? {} : parsed.errors);
   const missing = $derived(parsed.ok ? [] : parsed.missing);
 </script>

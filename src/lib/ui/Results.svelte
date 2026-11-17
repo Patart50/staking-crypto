@@ -10,6 +10,9 @@
   import { DAYS_PER_YEAR, type Outcome } from '../core/staking';
   import LinesChart from './LinesChart.svelte';
   import ExportPanel from './ExportPanel.svelte';
+  import { app } from '../state/app.svelte';
+  import { addDays, dateText, daysBetween, today } from '../core/dates';
+  import { valuation } from '../core/valuation';
 
   interface Props {
     result: Result;
@@ -60,6 +63,35 @@
     return out;
   });
 
+  // ---------- Historique des cours et valeur dans le temps (D-021) ----------
+  const totalDays = $derived(v.input.years.times(DAYS_PER_YEAR).toNumber());
+  const todayDate = today();
+  const elapsed = $derived(daysBetween(v.startDate, todayDate));
+  const past = $derived(elapsed > 0);
+  const history = $derived(past ? app.historyFor(v.asset, v.currency, v.startDate) : null);
+  const lastClose = $derived(history && history.prices.size ? [...history.prices.values()].at(-1)! : null);
+  const current = $derived(v.price ?? lastClose);
+  const strategyK = $derived(v.perYear);
+  const val = $derived(current || history ? valuation(v.input, strategyK, v.startDate, todayDate, history?.prices ?? null, current) : null);
+  const now = $derived(val?.now ?? null);
+  const shortDate = (day: number) => {
+    const d = new Date(Date.parse(addDays(v.startDate, Math.round(day))));
+    return d.toLocaleDateString('fr-FR', totalDays > 400 ? { month: 'short', year: '2-digit', timeZone: 'UTC' } : { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  };
+  const valueSeries = $derived(
+    val
+      ? [
+          { name: `Staking (${frequencyText(strategyK)})`, color: 'var(--series-1)', points: val.points.map((p) => ({ x: new D(p.day), y: p.staking })) },
+          { name: 'Mêmes jetons sans staking', color: 'var(--series-muted)', dashed: true, points: val.points.map((p) => ({ x: new D(p.day), y: p.hold })) },
+        ]
+      : [],
+  );
+  const valueSummary = $derived(
+    val
+      ? `Valeur en ${f.symbol} du ${dateText(v.startDate)} au ${dateText(addDays(v.startDate, Math.round(totalDays)))} : ${f.money(val.points[0].staking)} au départ, ${f.money(val.points.at(-1)!.staking)} à la fin avec le staking, ${f.money(val.points.at(-1)!.hold)} sans. Cours historique jusqu'à aujourd'hui, constant ensuite.`
+      : '',
+  );
+
   // ---------- Graphiques ----------
   const days = (d: Dec) => d;
   const balanceSeries = $derived([
@@ -69,7 +101,6 @@
       ? [{ name: `Meilleure fréquence (${c.optimal.perYear}/an)`, color: 'var(--series-1)', points: result.series.optimal.map((p) => ({ x: p.day, y: p.balance })) }]
       : []),
   ]);
-  const totalDays = $derived(v.input.years.times(DAYS_PER_YEAR).toNumber());
   const fmtDays = (n: number) => (totalDays > 3 * 365 ? `${(n / 365).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} an` : `${Math.round(n)} j`);
   const tokenAxis = (n: number) => `${n.toLocaleString('fr-FR', { maximumSignificantDigits: 6 })}`;
 
@@ -173,12 +204,87 @@
     </p>
   </section>
 
+  {#if past}
+    <section class="panel block" aria-labelledby="now-title">
+      <h2 id="now-title">{now && now.date < todayDate ? `À la fin du staking, le ${dateText(now.date)}` : `À ce jour, ${elapsed} jours après le début`}</h2>
+      {#if now}
+        <dl class="figures">
+          <div>
+            <dt>Solde estimé</dt>
+            <dd class="num">{tokens(now.balance)}</dd>
+          </div>
+          <div>
+            <dt>Valeur avec le staking</dt>
+            <dd class="num">{f.money(now.stakingValue)}</dd>
+          </div>
+          <div>
+            <dt>Sans staking</dt>
+            <dd class="num">{f.money(now.holdValue)}</dd>
+          </div>
+          <div>
+            <dt>Résultat depuis le début</dt>
+            <dd class="num" class:gain={now.stakingValue.gt(now.initialValue)} class:loss={now.stakingValue.lt(now.initialValue)}>{f.signed(now.stakingValue.minus(now.initialValue))}</dd>
+          </div>
+          <div>
+            <dt>dont rewards, nets de frais</dt>
+            <dd class="num" class:gain={now.stakingEffect.gt(0)} class:loss={now.stakingEffect.isNeg()}>{f.signed(now.stakingEffect)}</dd>
+          </div>
+          <div>
+            <dt>dont évolution du cours</dt>
+            <dd class="num" class:gain={now.priceEffect.gt(0)} class:loss={now.priceEffect.isNeg()}>{f.signed(now.priceEffect)}</dd>
+          </div>
+        </dl>
+        <p class="muted fine">
+          Cours de {asset} : {f.price(now.priceStart)} le {dateText(v.startDate)}, {f.price(now.price)} {now.date < todayDate ? `le ${dateText(now.date)}` : v.price ? 'aujourd’hui (cours saisi)' : 'à la dernière clôture'}.
+          Rewards estimés au taux saisi, supposé constant : ce ne sont pas vos rewards réels.
+        </p>
+      {:else if app.historyStatus === 'loading'}
+        <p class="muted" aria-live="polite">Chargement de l'historique des cours…</p>
+      {:else if app.consentFor === 'history'}
+        <div class="consent" role="group" aria-labelledby="hist-consent">
+          <p id="hist-consent"><strong>Récupérer l'historique des cours de {asset} sur Binance ?</strong></p>
+          <p>
+            L'outil demandera à l'API publique de Binance les cours journaliers de {asset} depuis le {dateText(v.startDate)} : seuls des noms de paires (ex.
+            {asset}USDC) et des dates sont envoyés, jamais de montant. Votre adresse IP est visible de Binance, comme pour toute page web. Ce choix est mémorisé sur
+            cet appareil.
+          </p>
+          <div class="actions">
+            <button class="btn btn-primary btn-small" type="button" onclick={() => app.acceptAndFetch()}>Autoriser et récupérer</button>
+            <button class="btn btn-small" type="button" onclick={() => app.cancelConsent()}>Pas maintenant</button>
+          </div>
+        </div>
+      {:else}
+        <p>Pour voir ce que vaut votre staking aujourd'hui et l'effet du cours depuis le {dateText(v.startDate)}, l'outil a besoin de l'historique des cours.</p>
+        <div class="actions">
+          <button class="btn btn-small" type="button" onclick={() => app.requestHistory(v.asset, v.currency, v.startDate)}>Charger l'évolution du cours</button>
+        </div>
+        {#if app.historyStatus === 'error' && app.historyMessage}<p class="error" role="alert">{app.historyMessage}</p>{/if}
+      {/if}
+    </section>
+  {/if}
+
+  {#if val && (past || v.price)}
+    <LinesChart
+      title={`Valeur en ${f.symbol} dans le temps`}
+      summary={valueSummary}
+      series={valueSeries}
+      xLabel="Date"
+      fmtX={shortDate}
+      fmtY={(n) => f.round(new D(n))}
+      vertical={val.todayDay !== null ? { x: val.todayDay, label: 'Aujourd’hui' } : null}
+    />
+    <p class="muted fine chart-note">
+      {past && history ? `Cours de clôture Binance (${history.route}) jusqu'à hier, ` : ''}cours {past ? 'actuel' : 'saisi'} supposé constant {past ? 'ensuite' : 'sur toute la durée'} : aucune
+      prédiction.{#if val.firstPriced} Pas de cours avant le {dateText(val.firstPriced)} (cotation plus tardive).{/if}
+    </p>
+  {/if}
+
   <LinesChart
     title="Solde dans le temps"
     summary={balanceSummary}
     series={balanceSeries}
-    xLabel="Jours"
-    fmtX={fmtDays}
+    xLabel={v.startGiven ? 'Date' : 'Jours'}
+    fmtX={v.startGiven ? shortDate : fmtDays}
     fmtY={tokenAxis}
     reference={{ y: v.input.amount, label: `Montant staké (${asset})` }}
   />
@@ -295,6 +401,23 @@
     border-radius: 999px;
     background: var(--accent-soft);
     color: var(--accent);
+  }
+  .consent {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.8rem 0.9rem;
+    border-radius: var(--radius);
+    background: var(--accent-soft);
+    font-size: 0.9rem;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .chart-note {
+    margin-top: -0.6rem;
+    padding-inline: 0.2rem;
   }
   td.num {
     white-space: nowrap;
