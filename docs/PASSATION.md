@@ -1,17 +1,20 @@
 # staking-crypto — Passation
 
-## État (16 nov. 2026)
-J0 en PR (branche `j0-spec`) : licence AGPL-3.0 (remplace la GPL-3.0 de GitHub), SPEC v0.1, décisions D-001 à D-016. Validées par Arnaud : D-001 à D-004, D-014 (dollar USDC par défaut, ou euro) et D-015 (cours Binance en opt-in) ; D-005 et D-009 remplacées ; D-006 à D-008, D-010 à D-013 et D-016 à valider en relisant la PR. Aucun code.
+## État (17 nov. 2026)
+J0 fusionné (PR #1 à #3). **J1 en PR** (branche `j1-squelette`) : squelette Svelte 5 + Vite + TS + Vitest, version 0.1.0 ; moteur `src/lib/core/staking.ts` testé (28 tests) ; page d'accueil d'attente avec l'exemple de référence calculé par le moteur ; page « À propos et limites » minimale avec Auteur et soutien ; CI et déploiement Pages. Décisions D-017 (pas de compound à la toute fin) à valider, D-018 (dépendance épinglée sur un commit) actée.
+
+commun-crypto : **PR #5** (module `currency`, v1.3.0, commun D-011), à fusionner et taguer `v1.3.0` par Arnaud.
 
 ## À faire par Arnaud
-1. Relire et fusionner la PR J0 ; dire ce qui change dans les décisions ⚠️.
-2. Vérifier que Pages est activé (Settings → Pages → Source « GitHub Actions »).
+1. Fusionner commun-crypto PR #5 et poser le tag `v1.3.0`.
+2. Relire la PR J1 de staking-crypto ; valider D-006 à D-008, D-010 à D-013, D-016, D-017.
+3. Vérifier que Pages est activé (Settings → Pages → Source « GitHub Actions »).
 
 ## Prochaine étape (Claude)
-Avant J1 : PR commun-crypto `currency` (déplacé de renfort, D-016) ; Arnaud tague `v1.3.0`. Il faut l'accès de cette conversation à commun-crypto.
-
-J1 sur la branche `j1-squelette` : squelette Svelte 5 + Vite + TS + Vitest ; commun-crypto au dernier tag ; moteur `src/lib/core/staking.ts` testé (conversion APY, sans compound, compound pas à pas et forme fermée concordants, formule d'école retrouvée sans frais, fréquence optimale, point mort, cas limites) ; thème, service worker, pied de page, À propos minimal avec Auteur et soutien ; README ; CHANGELOG ; CI et déploiement Pages.
+- Passer `commun-crypto` sur `#v1.3.0` dans `package.json` dès le tag (D-018).
+- J2 sur la branche `j2-interface` : formulaire (devise $ par défaut, jeton, cours du jour Binance en opt-in, montant en jetons ou en devise, taux APR/APY, durée, commission, fréquence, frais en devise), conversion des frais en jetons, comparaison en trois colonnes, phrase de synthèse, graphiques (XYChart repris de renfort), scénarios enregistrés, export CSV, lien de partage.
 
 ## Points d'attention
-- Exemple de référence pour les tests (vérifié en J0, en jetons) : 1 ETH, APR 4 %, commission 10 %, 0,0002 ETH par compound, 1 an. Sans compound : 1,036 ETH. Meilleure fréquence : 2 par an, 1,0359204 ETH, donc **moins bien que ne rien faire**. Compound quotidien : 0,9623 ETH, perte. L'écran doit savoir dire « ne compoundez pas ».
-- Vérifier à chaque PR : aucune requête externe sans consentement, aucune à l'ouverture (D-015).
+- Exemple de référence (en jetons, D-017) : 1 ETH, APR 4 %, commission 10 %, 0,0002 ETH par compound, 1 an. Sans compound : 1,036 ETH. Meilleure fréquence : 2 par an (un compound), 1,0361204 ETH. Compound quotidien : 0,96252783 ETH, perte ; point mort quotidien 2,03 ETH. L'écran doit savoir dire « ne compoundez pas » ou « à peine mieux ».
+- Recherche de la fréquence optimale : 365 calculs en forme fermée ; moins d'une seconde sur 50 ans (testé).
+- Vérifier à chaque PR : aucune requête externe sans consentement, aucune à l'ouverture (D-015) ; QR codes décodés identiques aux adresses de `support.ts`.

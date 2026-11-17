@@ -42,7 +42,7 @@ La simulation se fait **en jetons** (les rewards sont versés en jetons) ; les f
 | Capital de départ | M₀ = M − e |
 | **Sans compound** | rewards = M₀ × APR × (1 − c) × T ; solde final = M₀ + rewards − s |
 | **Avec compound**, par période de 1/k an | r = M_i × APR × (1 − c) / k ; M_{i+1} = M_i + r − g |
-| Dernière période incomplète | rewards au prorata du temps restant, non réinvestis |
+| Dernier segment (D-017) | pas de compound à la fin : rewards du temps restant après le dernier compound, réclamés à la sortie |
 | Solde final avec compound | M_n + rewards de la dernière fraction − s |
 | Rewards nets | solde final − M (tous frais déduits) |
 | Frais totaux | e + s + nombre de compounds × g ; plus la commission prélevée |
@@ -84,7 +84,7 @@ Principes communs : 100 % dans le navigateur, aucune requête externe sans conse
 ## 6. Jalons
 
 - **J0** Spec v0.1, décisions, licence AGPL-3.0 (cette PR).
-- **J1** Squelette Svelte 5 + Vite + TS + Vitest, commun-crypto au tag qui contient `currency` (D-016), moteur de calcul testé (formules, cas limites, fréquence optimale, concordance avec la formule d'école), CI et déploiement Pages (page d'attente), À propos minimal avec auteur et soutien.
+- **J1** ✅ Squelette Svelte 5 + Vite + TS + Vitest, commun-crypto au tag qui contient `currency` (D-016), moteur de calcul testé (formules, cas limites, fréquence optimale, concordance avec la formule d'école), CI et déploiement Pages (page d'attente), À propos minimal avec auteur et soutien.
 - **J2** Interface complète : saisie, comparaison, graphiques, scénarios enregistrés, export CSV, partage.
 - **J3** v1.0 : page « À propos et limites » complète, hors ligne vérifié, accessibilité (axe-core), release.
 

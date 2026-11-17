@@ -63,3 +63,9 @@ Remplace D-009 et le « pas d'appel à Binance » de D-005. Comme renfort D-013 
 
 ## D-016 ⚠️ Code de devise déplacé dans commun-crypto
 `src/lib/core/currency.ts` de renfort-crypto (renfort D-019) devait rejoindre commun-crypto dès qu'un second outil aurait besoin du dollar : c'est le cas. Avant J1 : PR dans commun-crypto (`currency` et ses tests, version mineure **v1.3.0**, tag par Arnaud) ; staking-crypto épingle ce tag. renfort-crypto passera sur le paquet dans une PR séparée, sans changement de comportement.
+
+## D-017 ⚠️ Pas de compound à la toute fin
+Précise D-003 et D-004. Un compound a lieu à la fin de chaque période complète, **sauf** si elle s'achève pile à la fin de la durée : à ce moment on réclame et on retire, ce que couvrent les frais de sortie ; payer un compound de plus serait un frais sans effet. Sur 1 an à 12 compounds par an, il y a donc 11 compounds ; à 1 par an, aucun, et le résultat est exactement celui du « sans compound ». Sans frais, le modèle redonne toujours la formule d'école M(1 + APR/k)^(kT) (testé). Conséquence sur l'exemple de référence (1 ETH, APR 4 %, commission 10 %, 0,0002 ETH par compound, 1 an) : la meilleure fréquence (2 par an, un seul compound) donne 1,0361204 ETH, à peine plus que 1,036 sans compound ; le quotidien donne 0,96252783 ETH.
+
+## D-018 ✅ Dépendance commun-crypto épinglée sur un commit, le temps du tag v1.3.0
+J1 a besoin de `commun-crypto/currency` (D-016), en PR #5 de commun-crypto. En attendant le tag, `package.json` épingle le commit de la branche (`0f51ff6`) ; il passe sur `#v1.3.0` dès le tag posé, avant la fusion de J1 si possible, sinon dans la PR J2. Même contenu, aucun changement de code.
