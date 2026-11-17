@@ -8,6 +8,7 @@
 import { D, type Dec } from 'commun-crypto/money';
 import { isCurrency, readAmount, type Currency } from 'commun-crypto/currency';
 import { isIsoDate, today } from './dates';
+import { parisToUtcMs } from 'commun-crypto/klines';
 import {
   breakEvenCapital,
   compare,
@@ -45,6 +46,10 @@ export interface Form {
   durationUnit: DurationUnit;
   /** Date de début AAAA-MM-JJ ; vide : aujourd'hui (D-021). */
   startDate: string;
+  /** Heure de début HH:MM, heure de Paris ; vide : 00:00 (D-023). */
+  startTime: string;
+  /** Cours à la date et l'heure de début, dans la devise (D-023). */
+  startPrice: string;
   commission: string;
   frequency: Frequency;
   /** Compounds par an, fréquence personnalisée. */
@@ -55,8 +60,8 @@ export interface Form {
   exitFee: string;
 }
 
-export type Field = 'fx' | 'asset' | 'price' | 'amount' | 'rate' | 'duration' | 'startDate' | 'commission' | 'perYear' | 'compoundFee' | 'entryFee' | 'exitFee';
-export const TEXT_FIELDS: readonly Field[] = ['fx', 'asset', 'price', 'amount', 'rate', 'duration', 'startDate', 'commission', 'perYear', 'compoundFee', 'entryFee', 'exitFee'];
+export type Field = 'fx' | 'asset' | 'price' | 'amount' | 'rate' | 'duration' | 'startDate' | 'startTime' | 'startPrice' | 'commission' | 'perYear' | 'compoundFee' | 'entryFee' | 'exitFee';
+export const TEXT_FIELDS: readonly Field[] = ['fx', 'asset', 'price', 'amount', 'rate', 'duration', 'startDate', 'startTime', 'startPrice', 'commission', 'perYear', 'compoundFee', 'entryFee', 'exitFee'];
 /** Première bougie journalière de Binance. */
 export const FIRST_DATE = '2017-07-14';
 export const FREQUENCY_LIST: readonly Frequency[] = ['none', 'daily', 'weekly', 'monthly', 'custom'];
@@ -77,6 +82,8 @@ export function defaultForm(): Form {
     duration: '1',
     durationUnit: 'years',
     startDate: '',
+    startTime: '',
+    startPrice: '',
     commission: '',
     frequency: 'weekly',
     perYear: '24',
@@ -88,7 +95,7 @@ export function defaultForm(): Form {
 
 /** Champs de montant à convertir lors d'un changement de devise (commun-crypto/currency). */
 export function moneyFields(form: Form): { prices: Field[]; amounts: Field[] } {
-  return { prices: ['price'], amounts: [...(form.amountUnit === 'money' ? (['amount'] as Field[]) : []), 'compoundFee', 'entryFee', 'exitFee'] };
+  return { prices: ['price', 'startPrice'], amounts: [...(form.amountUnit === 'money' ? (['amount'] as Field[]) : []), 'compoundFee', 'entryFee', 'exitFee'] };
 }
 
 /** Formulaire relu depuis le stockage ou un lien : champs inconnus ignorés, chaînes de 40 caractères au plus. */
@@ -128,6 +135,12 @@ export interface Values {
   startDate: string;
   /** La date de début a été saisie. */
   startGiven: boolean;
+  /** Heure de début HH:MM (heure de Paris). */
+  startTime: string;
+  /** Instant de début, UTC (ms). */
+  startMs: number;
+  /** Cours au début, s'il est connu (D-023). */
+  startPrice: Dec | null;
   /** Durée telle que saisie, pour l'affichage. */
   duration: { value: Dec; unit: DurationUnit };
   /** Entrée du moteur, en jetons. */
@@ -173,6 +186,10 @@ export function parseForm(form: Form): ParseResult {
     else if (startRaw > now) errors.startDate = 'Date de début : aujourd’hui au plus tard.';
     else if (startRaw < FIRST_DATE) errors.startDate = 'Date de début : pas avant le 14 juillet 2017 (premiers cours de Binance).';
   }
+  const timeRaw = form.startTime.trim();
+  if (timeRaw && !/^([01]\d|2[0-3]):[0-5]\d$/.test(timeRaw)) errors.startTime = 'Heure : format HH:MM.';
+  const startMs = startRaw && !errors.startDate && !errors.startTime ? parisToUtcMs(`${startRaw}T${timeRaw || '00:00'}`) : Date.now();
+  if (startMs > Date.now()) errors.startTime = 'Heure : pas dans le futur.';
 
   const asset = form.asset.trim().toUpperCase();
   if (asset && !/^[A-Z0-9]{1,15}$/.test(asset)) errors.asset = 'Jeton : lettres et chiffres seulement (ex. ETH).';
@@ -188,7 +205,9 @@ export function parseForm(form: Form): ParseResult {
     exit: read('exitFee', { label: 'Frais de sortie' }) ?? new D(0),
   };
 
-  const needsPrice = form.amountUnit === 'money' || !fees.compound.isZero() || !fees.entry.isZero() || !fees.exit.isZero();
+  const pastStart = startRaw !== '' && startRaw < now;
+  const startPrice = fixedPrice(form) ? new D(1) : pastStart ? read('startPrice', { label: 'Cours au début', positive: true, required: form.amountUnit === 'money' }) : null;
+  const needsPrice = (form.amountUnit === 'money' && !pastStart) || !fees.compound.isZero() || !fees.entry.isZero() || !fees.exit.isZero();
   let price: Dec | null;
   if (fixedPrice(form)) price = new D(1);
   else price = read('price', { label: `Cours de ${asset || 'du jeton'}`, required: needsPrice, positive: true });
@@ -211,7 +230,8 @@ export function parseForm(form: Form): ParseResult {
   if (Object.keys(errors).length || missing.length || !amount || !rate || !duration || !years) return { ok: false, errors, missing };
 
   const toTokens = (v: Dec) => (price ? v.div(price) : v);
-  const amountTokens = form.amountUnit === 'money' ? toTokens(amount) : amount;
+  // Montant en devise d'un staking passé : converti au cours du début, sinon au cours actuel (D-023).
+  const amountTokens = form.amountUnit === 'money' ? (startPrice ? amount.div(startPrice) : toTokens(amount)) : amount;
   const input: StakingInput = {
     amount: amountTokens,
     rate: rate.div(100),
@@ -240,6 +260,9 @@ export function parseForm(form: Form): ParseResult {
       perYear,
       startDate: startRaw || now,
       startGiven: startRaw !== '',
+      startTime: timeRaw || '00:00',
+      startMs,
+      startPrice,
       rateType: form.rateType,
       duration: { value: duration, unit: form.durationUnit },
       input,

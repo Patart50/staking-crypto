@@ -90,4 +90,11 @@ Demande d'Arnaud (17 nov. 2026) : un staking commencé dans le passé, et un sc�
 - **Limite assumée** : les frais en devise sont convertis au cours actuel, pas au cours du jour où ils ont été payés.
 
 ## D-022 ✅ Champ « Cours » en pleine largeur
-Demande d'Arnaud (17 nov. 2026) : le champ était trop étroit à côté du bouton « Cours du jour ». Il occupe désormais toute la ligne ; « Jeton staké » et « Date de début » partagent la ligne au-dessus. Libellé « Cours actuel » quand la date de début est passée.
+Validée par Arnaud (17 nov. 2026). Demande d'Arnaud (17 nov. 2026) : le champ était trop étroit à côté du bouton « Cours du jour ». Il occupe désormais toute la ligne ; « Jeton staké » et « Date de début » partagent la ligne au-dessus. Libellé « Cours actuel » quand la date de début est passée.
+
+## D-023 ⚠️ Heure de début et cours à la date de début
+Demande d'Arnaud (17 nov. 2026) : quand on change la date de début, l'outil doit trouver le cours à cette date ; il faut aussi l'heure. D-022 validée le même jour.
+- **Heure de début** (HH:MM, heure de Paris, facultative ; vide = 00:00), à côté du calendrier ; date et heure ne peuvent pas être dans le futur. Gardée dans le scénario et le lien de partage (`sh`).
+- **Cours au début** (champ, dans la devise) : cherché sur Binance à chaque changement de date, d'heure ou de jeton, et remplacé ; modifiable à la main ; bouton « Cours à cette date ». Bougie d'une minute contenant l'instant (`commun-crypto/klines`, commun D-010 ; pas de bougie à moins d'une heure : « saisissez-le à la main »). Même consentement que les autres appels (D-015) : la première fois, l'encart s'ouvre au changement de date. Envoyé : noms de paires et instant. Lien de partage : `sp`. Converti avec les autres cours lors d'un changement de devise.
+- **Chemins** : comme D-021 (dollars XUSDC, puis XUSDT ÷ USDCUSDT, puis XUSDT ; euros XEUR, puis XUSDT ÷ EURUSDT ; USDC en dollars : 1).
+- **Usage** : un montant saisi en devise pour un staking passé est converti en jetons **au cours du début** (et non plus au cours actuel) ; le cours au début est alors requis. Il remplace aussi la clôture journalière du premier jour pour la valeur de départ et l'effet du cours (D-021).

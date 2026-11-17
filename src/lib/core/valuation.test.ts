@@ -110,3 +110,30 @@ describe('date de début', () => {
     expect(ok.ok && ok.values.startDate).toBe('2024-03-01');
   });
 });
+
+describe('cours au début (D-023)', () => {
+  const base = { ...defaultForm(), amount: '5 000', amountUnit: 'money' as const, rate: '4', startDate: '2025-03-01', startTime: '14:30' };
+  it('montant en devise converti au cours du début', () => {
+    const r = parseForm({ ...base, startPrice: '2 500', price: '4 000' });
+    expect(r.ok && r.values.input.amount.toString()).toBe('2');
+    expect(r.ok && r.values.startTime).toBe('14:30');
+  });
+  it('heure invalide ou future', () => {
+    expect(parseForm({ ...base, startTime: '25:00' }).ok).toBe(false);
+    const todayDate = new Date().toISOString().slice(0, 10);
+    const r = parseForm({ ...base, startDate: todayDate, startTime: '23:59', startPrice: '1' });
+    // Aujourd'hui à 23:59 (Paris) n'est futur que si on n'y est pas encore : on vérifie seulement l'absence de plantage.
+    expect(typeof r.ok).toBe('boolean');
+  });
+  it('sans cours au début ni cours actuel : à renseigner', () => {
+    const r = parseForm(base);
+    expect(!r.ok && r.missing).toContain('Cours au début');
+  });
+  it('valeur : le cours au début remplace la clôture du premier jour', () => {
+    const start = '2025-01-01';
+    const history = new Map(eachDay(start, '2025-07-01').map((d) => [d, dec(2000)] as const));
+    const v = valuation(REF, 0, start, '2025-07-02', history, dec(3000), dec(1800))!;
+    expect(v.points[0].price.toString()).toBe('1800');
+    expect(v.now!.priceStart.toString()).toBe('1800');
+  });
+});

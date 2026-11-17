@@ -60,6 +60,8 @@ export function valuation(
   todayDate: string,
   history: Map<string, Dec> | null,
   current: Dec | null,
+  /** Cours au début (D-023), prioritaire sur la clôture du premier jour. */
+  startPrice: Dec | null = null,
   maxPoints = 160,
 ): Valuation | null {
   const totalDays = input.years.times(DAYS_PER_YEAR).floor().toNumber();
@@ -67,6 +69,7 @@ export function valuation(
   let last: Dec | null = null;
   const priceOn = (day: number): Dec | null => {
     const date = addDays(start, day);
+    if (day === 0 && startPrice && elapsed > 0) return startPrice;
     if (day < elapsed && history) {
       const p = history.get(date);
       if (p) last = p;
@@ -96,7 +99,7 @@ export function valuation(
   let now: Snapshot | null = null;
   if (elapsed > 0) {
     const day = Math.min(elapsed, totalDays);
-    const priceStart = history?.get(start) ?? null;
+    const priceStart = startPrice ?? history?.get(start) ?? null;
     // Cours à la date retenue : clôture de la veille d'aujourd'hui pour le passé, cours actuel pour aujourd'hui.
     const price = day === elapsed ? current ?? priceOn(day - 1) : priceOn(day);
     if (priceStart && price) {

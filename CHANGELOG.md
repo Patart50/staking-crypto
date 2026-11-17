@@ -1,6 +1,7 @@
 # Changelog
 
 ## Non publié
+- J2 ter (0.4.0) : heure de début ; cours au début cherché sur Binance à chaque changement de date ou d'heure ; montant en devise d'un staking passé converti au cours du début.
 - J2 bis (0.3.0) : date de début de staking, historique des cours Binance en opt-in, valeur dans le temps avec et sans staking, situation à ce jour (effet des rewards, effet du cours) ; champ Cours en pleine largeur.
 - J2 (0.2.0) : calculateur complet. Dollar (USDC) par défaut ou euro, cours et taux du jour Binance en opt-in, synthèse, comparaison en trois colonnes, solde dans le temps et selon la fréquence, scénarios enregistrés, CSV, résumé copiable, lien de partage.
 - J1 (0.1.0) : squelette, moteur de calcul testé (sans compound, compound en forme fermée et pas à pas, fréquence optimale, point mort), page d'attente, À propos minimal, CI et déploiement.

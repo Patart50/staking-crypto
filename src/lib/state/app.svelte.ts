@@ -13,6 +13,8 @@ import { defaultForm, fixedPrice, moneyFields, sanitize, type Form } from '../co
 import { readShareFragment } from '../export/scenario';
 import { BinanceDaily, type PriceHistory } from '../prices/history';
 import { today } from '../core/dates';
+import { minuteKlines, priceAt } from '../prices/at';
+import { parisToUtcMs } from 'commun-crypto/klines';
 
 export interface Settings {
   theme: Theme;
@@ -59,7 +61,13 @@ class AppState {
   /** Le scénario vient d'un lien de partage (affiché une fois). */
   fromShare = $state(false);
 
-  consentFor = $state<'price' | 'rate' | 'history' | null>(null);
+  consentFor = $state<'price' | 'rate' | 'history' | 'start' | null>(null);
+
+  /** Cours au début (D-023). */
+  startPriceStatus = $state<'idle' | 'loading' | 'error'>('idle');
+  startPriceMessage = $state<string | null>(null);
+  startPriceRoute = $state<string | null>(null);
+  private startRequest = 0;
 
   /** Historique des cours (D-021) : chargé pour un jeton, une devise et une période. */
   history = $state<PriceHistory | null>(null);
@@ -239,6 +247,7 @@ class AppState {
     this.setConsent(true);
     this.consentFor = null;
     if (what === 'history') void this.loadHistory(this.pendingHistory);
+    else if (what === 'start') void this.fetchStartPrice();
     else void (what === 'rate' ? this.fetchRate() : this.fetchPrice());
   }
 
@@ -308,6 +317,68 @@ class AppState {
     } catch (e) {
       this.rateStatus = 'error';
       this.rateMessage = `${e instanceof PriceFetchError ? e.message : BAD_RESPONSE} Saisissez le taux à la main.`;
+    }
+  }
+
+  // ---------- Cours à la date et l'heure de début (D-023) ----------
+
+  /**
+   * Date, heure, jeton ou devise du début modifiés : cherche le cours à cet
+   * instant (consentement la première fois). Remplace le cours au début saisi.
+   */
+  startChanged() {
+    const date = this.form.startDate.trim();
+    this.startPriceRoute = null;
+    if (!date || date >= today() || fixedPrice(this.form)) return;
+    if (!this.settings.allowPriceFetch) {
+      this.consentFor = 'start';
+      return;
+    }
+    void this.fetchStartPrice();
+  }
+
+  requestStartPrice() {
+    if (!this.settings.allowPriceFetch) {
+      this.consentFor = 'start';
+      return;
+    }
+    void this.fetchStartPrice();
+  }
+
+  private async fetchStartPrice() {
+    const asset = this.form.asset.trim().toUpperCase();
+    const date = this.form.startDate.trim();
+    const time = this.form.startTime.trim() || '00:00';
+    if (!/^[A-Z0-9]{1,15}$/.test(asset) || !date) {
+      this.startPriceStatus = 'error';
+      this.startPriceMessage = 'Indiquez d’abord le jeton et la date de début.';
+      return;
+    }
+    let utcMs: number;
+    try {
+      utcMs = parisToUtcMs(`${date}T${time}`);
+    } catch {
+      return;
+    }
+    const id = ++this.startRequest;
+    const currency = this.form.currency;
+    this.startPriceStatus = 'loading';
+    this.startPriceMessage = null;
+    try {
+      const found = await priceAt((symbol, ms) => minuteKlines.close(symbol, ms), asset, currency, utcMs);
+      if (id !== this.startRequest) return;
+      if (!found) {
+        this.startPriceStatus = 'error';
+        this.startPriceMessage = `Pas de cours de ${asset} sur Binance à cette date et cette heure. Saisissez-le à la main.`;
+        return;
+      }
+      this.form.startPrice = toInput(roundPrice(found.price));
+      this.startPriceRoute = found.route;
+      this.startPriceStatus = 'idle';
+    } catch (e) {
+      if (id !== this.startRequest) return;
+      this.startPriceStatus = 'error';
+      this.startPriceMessage = `${e instanceof PriceFetchError ? e.message : BAD_RESPONSE} Saisissez le cours à la main.`;
     }
   }
 

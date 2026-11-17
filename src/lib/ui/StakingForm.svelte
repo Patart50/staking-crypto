@@ -5,7 +5,7 @@
 <script lang="ts">
   import { app } from '../state/app.svelte';
   import { FIRST_DATE, fixedPrice, type Field } from '../core/form';
-  import { today } from '../core/dates';
+  import { dateText, today } from '../core/dates';
   import { SYMBOL, type Currency } from 'commun-crypto/currency';
 
   interface Props {
@@ -131,6 +131,7 @@
         <input
           bind:value={app.form.asset}
           oninput={() => (app.priceRoute = null)}
+          onchange={() => app.startChanged()}
           autocomplete="off"
           autocapitalize="characters"
           spellcheck="false"
@@ -142,19 +143,60 @@
         {#if err('asset')}<small id="asset-err" class="error">{err('asset')}</small>{/if}
       </label>
 
-      <label class="field">
-        <span>Date de début</span>
-        <input
-          type="date"
-          bind:value={app.form.startDate}
-          min={FIRST_DATE}
-          max={maxDate}
-          aria-invalid={!!err('startDate')}
-          aria-describedby={describedBy('startDate', 'startDate-hint')}
-        />
-        <small id="startDate-hint">Vide : aujourd'hui. Passée : évolution réelle du cours.</small>
+      <div class="field wide">
+        <span class="label" id="start-label">Début du staking</span>
+        <div class="with-unit" role="group" aria-labelledby="start-label">
+          <input
+            type="date"
+            bind:value={app.form.startDate}
+            onchange={() => app.startChanged()}
+            min={FIRST_DATE}
+            max={maxDate}
+            aria-label="Date de début"
+            aria-invalid={!!err('startDate')}
+            aria-describedby={describedBy('startDate', 'startDate-hint')}
+          />
+          <input
+            type="time"
+            class="time"
+            bind:value={app.form.startTime}
+            onchange={() => app.startChanged()}
+            aria-label="Heure de début (heure de Paris)"
+            aria-invalid={!!err('startTime')}
+            aria-describedby={describedBy('startTime', 'startDate-hint')}
+          />
+        </div>
+        <small id="startDate-hint">Vide : aujourd'hui. Heure de Paris.</small>
         {#if err('startDate')}<small id="startDate-err" class="error">{err('startDate')}</small>{/if}
-      </label>
+        {#if err('startTime')}<small id="startTime-err" class="error">{err('startTime')}</small>{/if}
+      </div>
+
+      {#if past && !priceFixed}
+        <div class="field wide">
+          <label for="startPrice"><span class="label">Cours au début ({sym})</span></label>
+          <div class="with-btn">
+            <input
+              id="startPrice"
+              bind:value={app.form.startPrice}
+              oninput={() => (app.startPriceRoute = null)}
+              inputmode="decimal"
+              autocomplete="off"
+              placeholder="2 450"
+              aria-invalid={!!err('startPrice')}
+              aria-describedby={describedBy('startPrice', 'startPrice-hint')}
+            />
+            <button class="btn btn-small" type="button" onclick={() => app.requestStartPrice()} disabled={app.startPriceStatus === 'loading'}>
+              {app.startPriceStatus === 'loading' ? 'Chargement…' : 'Cours à cette date'}
+            </button>
+          </div>
+          <small id="startPrice-hint">
+            {#if app.startPriceRoute}Binance, bougie d'une minute ({app.startPriceRoute}), modifiable.{:else}Cherché sur Binance quand vous changez la date ou l'heure. Sert à convertir un montant en {sym} et à mesurer l'effet du cours.{/if}
+          </small>
+          {#if err('startPrice')}<small id="startPrice-err" class="error">{err('startPrice')}</small>{/if}
+          {#if app.startPriceStatus === 'error' && app.startPriceMessage}<small class="error" role="alert">{app.startPriceMessage}</small>{/if}
+        </div>
+        {#if app.consentFor === 'start'}{@render consent(`le cours de ${asset} au ${dateText(app.form.startDate)} à ${app.form.startTime || '00:00'}`)}{/if}
+      {/if}
 
       <div class="field wide">
         <label for="price"><span class="label">{past ? 'Cours actuel' : 'Cours'} ({sym})</span></label>
@@ -323,6 +365,9 @@
   .with-unit input {
     flex: 1;
     min-width: 0;
+  }
+  .with-unit .time {
+    flex: 0 0 9rem;
   }
   .with-unit select {
     width: auto;

@@ -57,7 +57,15 @@
   const missing = $derived(parsed.ok ? [] : parsed.missing);
 </script>
 
-<a class="skip" href="#contenu">Aller au contenu</a>
+<a
+  class="skip"
+  href="#contenu"
+  onclick={(e) => {
+    // L'ancre « #contenu » changerait de vue (routage par ancre) : on déplace seulement le focus.
+    e.preventDefault();
+    document.getElementById('contenu')?.focus();
+  }}>Aller au contenu</a
+>
 
 <header class="top">
   <div class="top-inner">
