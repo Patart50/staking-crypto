@@ -84,7 +84,7 @@ describe('parseForm', () => {
   });
 
   it('champs à convertir lors d’un changement de devise', () => {
-    expect(moneyFields(form())).toEqual({ prices: ['price'], amounts: ['compoundFee', 'entryFee', 'exitFee'] });
+    expect(moneyFields(form())).toEqual({ prices: ['price', 'startPrice'], amounts: ['compoundFee', 'entryFee', 'exitFee'] });
     expect(moneyFields(form({ amountUnit: 'money' })).amounts).toContain('amount');
   });
 });

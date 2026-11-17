@@ -36,7 +36,7 @@ function parameters(r: Result): string[][] {
   if (v.amountMoney) out.push([`Montant staké (${c})`, money(v.amountMoney)]);
   out.push([`Taux ${v.rateType} (%)`, percent(v.input.rate)]);
   if (v.rateType === 'APY') out.push(['APR équivalent (%)', percent(r.apr)]);
-  out.push(['Date de début', v.startDate], ['Durée', `${n(v.duration.value, 4)} ${UNIT_LABEL[v.duration.unit]}`], ['Commission (%)', percent(v.input.commission)]);
+  out.push(['Date de début', v.startGiven ? `${v.startDate} ${v.startTime}` : v.startDate], ...(v.startPrice ? [[`Cours au début (${c})`, n(v.startPrice, 8)]] : []), ['Durée', `${n(v.duration.value, 4)} ${UNIT_LABEL[v.duration.unit]}`], ['Commission (%)', percent(v.input.commission)]);
   out.push(['Fréquence choisie', frequencyText(v.perYear)]);
   out.push([`Frais par compound (${c})`, money(v.fees.compound)], [`Frais d'entrée (${c})`, money(v.fees.entry)], [`Frais de sortie (${c})`, money(v.fees.exit)]);
   return out;
@@ -109,6 +109,8 @@ const KEYS: Record<string, keyof Form> = {
   t: 'duration',
   tu: 'durationUnit',
   sd: 'startDate',
+  sh: 'startTime',
+  sp: 'startPrice',
   c: 'commission',
   f: 'frequency',
   k: 'perYear',

@@ -72,7 +72,7 @@
   const lastClose = $derived(history && history.prices.size ? [...history.prices.values()].at(-1)! : null);
   const current = $derived(v.price ?? lastClose);
   const strategyK = $derived(v.perYear);
-  const val = $derived(current || history ? valuation(v.input, strategyK, v.startDate, todayDate, history?.prices ?? null, current) : null);
+  const val = $derived(current || history ? valuation(v.input, strategyK, v.startDate, todayDate, history?.prices ?? null, current, v.startPrice) : null);
   const now = $derived(val?.now ?? null);
   const shortDate = (day: number) => {
     const d = new Date(Date.parse(addDays(v.startDate, Math.round(day))));
@@ -235,7 +235,7 @@
           </div>
         </dl>
         <p class="muted fine">
-          Cours de {asset} : {f.price(now.priceStart)} le {dateText(v.startDate)}, {f.price(now.price)} {now.date < todayDate ? `le ${dateText(now.date)}` : v.price ? 'aujourd’hui (cours saisi)' : 'à la dernière clôture'}.
+          Cours de {asset} : {f.price(now.priceStart)} le {dateText(v.startDate)}{v.startPrice ? ` à ${v.startTime}` : ''}, {f.price(now.price)} {now.date < todayDate ? `le ${dateText(now.date)}` : v.price ? 'aujourd’hui (cours saisi)' : 'à la dernière clôture'}.
           Rewards estimés au taux saisi, supposé constant : ce ne sont pas vos rewards réels.
         </p>
       {:else if app.historyStatus === 'loading'}
