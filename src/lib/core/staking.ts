@@ -304,3 +304,30 @@ export function compoundSeries(input: StakingInput, perYear: number, max = 120):
   for (const r of compoundSchedule(input, perYear)) pts.push({ day: r.day, balance: r.balance });
   return thin(pts, max);
 }
+
+/**
+ * Solde au jour `day` (jours depuis le début) : capital après les compounds
+ * déjà faits, plus les rewards accumulés depuis le dernier ; frais de sortie
+ * déduits à partir de la fin de la durée. `perYear` = 0 : sans compound.
+ * Sert à la valeur dans le temps avec l'historique des cours (D-021).
+ */
+export function balanceAt(input: StakingInput, perYear: number, day: Dec): Dec {
+  validate(input);
+  const totalDays = input.years.times(DAYS_PER_YEAR);
+  const d = D.max(0, D.min(day, totalDays));
+  const start = input.amount.minus(input.entryFee);
+  const apr = nominalApr(input).times(new D(1).minus(input.commission));
+  let balance: Dec;
+  if (perYear === 0) balance = start.plus(start.times(apr).times(d).div(DAYS_PER_YEAR));
+  else {
+    checkPerYear(perYear);
+    const q = periodRate(input, perYear);
+    const periodDays = new D(DAYS_PER_YEAR).div(perYear);
+    const done = Math.min(periods(input, perYear).m, d.div(periodDays).floor().toNumber());
+    const fixed = input.compoundFee.div(q);
+    const capital = done === 0 ? start : start.minus(fixed).times(q.plus(1).pow(done)).plus(fixed);
+    const since = d.minus(periodDays.times(done));
+    balance = capital.gt(0) ? capital.plus(capital.times(apr).times(since).div(DAYS_PER_YEAR)) : capital;
+  }
+  return d.gte(totalDays) ? balance.minus(input.exitFee) : balance;
+}

@@ -143,7 +143,7 @@ describe('export et partage (D-008)', () => {
   it('CSV de l’échéancier : une ligne par compound, plus la sortie', () => {
     const lines = scheduleCsv(r).trim().split('\r\n');
     expect(lines).toHaveLength(3 + 12);
-    expect(lines.at(-1)).toMatch(/^12;365;/);
+    expect(lines.at(-1)).toMatch(/^12;\d{4}-\d{2}-\d{2};365;/);
   });
 
   it('résumé copiable', () => {

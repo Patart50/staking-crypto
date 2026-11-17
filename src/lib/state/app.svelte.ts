@@ -11,6 +11,8 @@ import { openLocalStore } from 'commun-crypto/storage';
 import { isTheme, type Theme } from 'commun-crypto/theme';
 import { defaultForm, fixedPrice, moneyFields, sanitize, type Form } from '../core/form';
 import { readShareFragment } from '../export/scenario';
+import { BinanceDaily, type PriceHistory } from '../prices/history';
+import { today } from '../core/dates';
 
 export interface Settings {
   theme: Theme;
@@ -57,7 +59,15 @@ class AppState {
   /** Le scénario vient d'un lien de partage (affiché une fois). */
   fromShare = $state(false);
 
-  consentFor = $state<'price' | 'rate' | null>(null);
+  consentFor = $state<'price' | 'rate' | 'history' | null>(null);
+
+  /** Historique des cours (D-021) : chargé pour un jeton, une devise et une période. */
+  history = $state<PriceHistory | null>(null);
+  historyStatus = $state<'idle' | 'loading' | 'error'>('idle');
+  historyMessage = $state<string | null>(null);
+  /** Clé du dernier historique demandé (réactive : les composants en dépendent). */
+  private historyKey = $state('');
+  private readonly daily = new BinanceDaily();
 
   priceStatus = $state<'idle' | 'loading' | 'error'>('idle');
   priceMessage = $state<string | null>(null);
@@ -228,7 +238,8 @@ class AppState {
     const what = this.consentFor;
     this.setConsent(true);
     this.consentFor = null;
-    void (what === 'rate' ? this.fetchRate() : this.fetchPrice());
+    if (what === 'history') void this.loadHistory(this.pendingHistory);
+    else void (what === 'rate' ? this.fetchRate() : this.fetchPrice());
   }
 
   cancelConsent() {
@@ -297,6 +308,56 @@ class AppState {
     } catch (e) {
       this.rateStatus = 'error';
       this.rateMessage = `${e instanceof PriceFetchError ? e.message : BAD_RESPONSE} Saisissez le taux à la main.`;
+    }
+  }
+
+  // ---------- Historique des cours (D-021) ----------
+
+  private pendingHistory: { asset: string; currency: Currency; from: string } | null = null;
+
+  /** Historique déjà chargé pour ces paramètres ? */
+  historyFor(asset: string, currency: Currency, from: string): PriceHistory | null {
+    return this.historyKey === `${asset}|${currency}|${from}|${today()}` ? this.history : null;
+  }
+
+  /** Demande l'historique : consentement la première fois, puis chargement. */
+  requestHistory(asset: string, currency: Currency, from: string) {
+    this.pendingHistory = { asset, currency, from };
+    if (!this.settings.allowPriceFetch) {
+      this.consentFor = 'history';
+      return;
+    }
+    void this.loadHistory(this.pendingHistory);
+  }
+
+  /** Chargement automatique (consentement déjà donné), une fois par jeu de paramètres. */
+  autoHistory(asset: string, currency: Currency, from: string) {
+    if (!this.settings.allowPriceFetch || this.historyStatus === 'loading') return;
+    if (this.historyKey === `${asset}|${currency}|${from}|${today()}`) return;
+    void this.loadHistory({ asset, currency, from });
+  }
+
+  private async loadHistory(p: { asset: string; currency: Currency; from: string } | null) {
+    if (!p) return;
+    const to = today();
+    const key = `${p.asset}|${p.currency}|${p.from}|${to}`;
+    this.historyKey = key;
+    this.historyStatus = 'loading';
+    this.historyMessage = null;
+    try {
+      const h = await this.daily.history(p.asset, p.currency, p.from, to);
+      if (this.historyKey !== key) return;
+      this.history = h;
+      this.historyStatus = 'idle';
+      if (!h.first) {
+        this.historyStatus = 'error';
+        this.historyMessage = `Aucun cours de ${p.asset} sur Binance pour cette période.`;
+      }
+    } catch (e) {
+      if (this.historyKey !== key) return;
+      this.historyStatus = 'error';
+      this.historyMessage = `${e instanceof PriceFetchError ? e.message : BAD_RESPONSE} Réessayez plus tard.`;
+      this.historyKey = '';
     }
   }
 

@@ -22,6 +22,7 @@ L'outil **ne calcule aucun impôt** et ne prédit aucun prix (D-011, D-012).
 | Montant staké | > 0, saisi en jetons ou dans la devise (bascule), converti au cours (D-014) |
 | Taux | > 0, en %, avec le type **APR** ou **APY** (D-002) |
 | Durée | > 0, en jours, mois ou années ; 50 ans au plus |
+| Date de début | Facultative (vide : aujourd'hui), du 14/07/2017 à aujourd'hui ; passée : historique des cours Binance en opt-in (D-021) |
 | Fréquence de compound | Aucun, quotidien, hebdomadaire, mensuel (D-003) ; option « personnalisée » (nombre de compounds par an) |
 | Commission | En %, dans [0, 100[, prélevée sur les rewards (D-003) ; 0 si le taux affiché est déjà net |
 | Frais par compound | Montant fixe ≥ 0, dans la devise (gas d'un claim + restake), converti en jetons au cours (D-003, D-004, D-014) |
@@ -86,6 +87,7 @@ Principes communs : 100 % dans le navigateur, aucune requête externe sans conse
 - **J0** Spec v0.1, décisions, licence AGPL-3.0 (cette PR).
 - **J1** ✅ Squelette Svelte 5 + Vite + TS + Vitest, commun-crypto au tag qui contient `currency` (D-016), moteur de calcul testé (formules, cas limites, fréquence optimale, concordance avec la formule d'école), CI et déploiement Pages (page d'attente), À propos minimal avec auteur et soutien.
 - **J2** ✅ Interface complète : saisie, comparaison, graphiques, scénarios enregistrés, export CSV, partage.
+- **J2 bis** ✅ Date de début, historique des cours, valeur dans le temps, situation à ce jour (D-021, D-022).
 - **J3** v1.0 : page « À propos et limites » complète, hors ligne vérifié, accessibilité (axe-core), release.
 
 ## 7. Hors périmètre v1.0

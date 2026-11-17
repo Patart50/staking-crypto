@@ -79,3 +79,15 @@ J1 a besoin de `commun-crypto/currency` (D-016), en PR #5 de commun-crypto. En a
 
 ## D-020 ✅ commun-crypto épinglé sur le commit de fusion de la v1.3.0
 Remplace le commit de branche de D-018 : `938d1cb`, fusion de la PR #5 de commun-crypto, contenu de la v1.3.0. Passage sur `#v1.3.0` dès le tag posé par Arnaud (même contenu).
+
+## D-021 ⚠️ Date de début et évolution réelle du cours
+Demande d'Arnaud (17 nov. 2026) : un staking commencé dans le passé, et un scénario rechargé plus tard, doivent montrer l'évolution du cours du jeton. Précise D-001 : l'outil reste un simulateur (rewards estimés au taux saisi, pas les rewards réels), mais il suit désormais la valeur dans le temps.
+- **Date de début** (calendrier natif, facultative ; vide = aujourd'hui), entre le 14 juillet 2017 (premières bougies de Binance) et aujourd'hui. Gardée dans le scénario, le CSV (colonne Date de l'échéancier) et le lien de partage (`sd`).
+- **Historique des cours** : bougies d'un jour de Binance (clôture UTC), requêtes et pagination reprises de dca-crypto (`BinanceDaily`, commit 50ce806), code dans `src/lib/prices/history.ts` (les bougies journalières restent propres à chaque outil, commun D-003). Envoyé : noms de paires et dates seulement. Même consentement que le cours du jour (D-015) ; une fois donné, l'historique se charge seul quand la date de début est passée, y compris au rechargement d'un scénario. Gardé en mémoire seulement.
+- **Chemins** : en dollars XUSDC, sinon XUSDT ÷ USDCUSDT, sinon XUSDT ; en euros XEUR, sinon XUSDT ÷ EURUSDT. USDC en dollars : 1. Un jour sans bougie reprend le dernier cours ; avant la première cotation, pas de cours (signalé).
+- **Valeur dans le temps** (`src/lib/core/valuation.ts`, testé) : solde de la stratégie choisie (`balanceAt`, forme fermée) × cours ; cours de clôture jusqu'à hier, puis cours actuel (saisi, sinon dernière clôture) **constant** : aucune prédiction. Graphique « Valeur en $ dans le temps » : staking et mêmes jetons sans staking, repère « Aujourd'hui ».
+- **À ce jour** : solde estimé, valeur avec et sans staking, résultat depuis le début décomposé en **effet des rewards** ((solde − montant) × cours) et **effet du cours** (montant × (cours − cours de départ)) ; la somme est vérifiée par test. Durée écoulée : situation à la fin.
+- **Limite assumée** : les frais en devise sont convertis au cours actuel, pas au cours du jour où ils ont été payés.
+
+## D-022 ✅ Champ « Cours » en pleine largeur
+Demande d'Arnaud (17 nov. 2026) : le champ était trop étroit à côté du bouton « Cours du jour ». Il occupe désormais toute la ligne ; « Jeton staké » et « Date de début » partagent la ligne au-dessus. Libellé « Cours actuel » quand la date de début est passée.

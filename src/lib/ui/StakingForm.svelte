@@ -4,7 +4,8 @@
 -->
 <script lang="ts">
   import { app } from '../state/app.svelte';
-  import { fixedPrice, type Field } from '../core/form';
+  import { FIRST_DATE, fixedPrice, type Field } from '../core/form';
+  import { today } from '../core/dates';
   import { SYMBOL, type Currency } from 'commun-crypto/currency';
 
   interface Props {
@@ -16,6 +17,8 @@
   const asset = $derived(app.form.asset.trim().toUpperCase() || 'jeton');
   const sym = $derived(SYMBOL[app.form.currency]);
   const priceFixed = $derived(fixedPrice(app.form));
+  const past = $derived(app.form.startDate.trim() !== '' && app.form.startDate < today());
+  const maxDate = today();
   const CURRENCY_ORDER: Currency[] = ['USD', 'EUR'];
   const CURRENCY_LABEL: Record<Currency, string> = { USD: '$ dollar (USDC)', EUR: '€ euro' };
   const err = (f: Field) => errors[f];
@@ -139,8 +142,22 @@
         {#if err('asset')}<small id="asset-err" class="error">{err('asset')}</small>{/if}
       </label>
 
-      <div class="field">
-        <label for="price"><span class="label">Cours ({sym})</span></label>
+      <label class="field">
+        <span>Date de début</span>
+        <input
+          type="date"
+          bind:value={app.form.startDate}
+          min={FIRST_DATE}
+          max={maxDate}
+          aria-invalid={!!err('startDate')}
+          aria-describedby={describedBy('startDate', 'startDate-hint')}
+        />
+        <small id="startDate-hint">Vide : aujourd'hui. Passée : évolution réelle du cours.</small>
+        {#if err('startDate')}<small id="startDate-err" class="error">{err('startDate')}</small>{/if}
+      </label>
+
+      <div class="field wide">
+        <label for="price"><span class="label">{past ? 'Cours actuel' : 'Cours'} ({sym})</span></label>
         {#if priceFixed}
           <input id="price" value="1" disabled aria-describedby="price-hint" />
           <small id="price-hint">USDC compté en dollars : 1 $.</small>
@@ -161,7 +178,7 @@
             </button>
           </div>
           <small id="price-hint">
-            {#if app.priceRoute}Binance ({app.priceRoute}), modifiable.{:else}Supposé constant. Requis pour les frais et un montant en {sym}.{/if}
+            {#if app.priceRoute}Binance ({app.priceRoute}), modifiable.{:else}Supposé constant à partir d'aujourd'hui. Requis pour les frais et un montant en {sym}.{/if}
           </small>
           {#if err('price')}<small id="price-err" class="error">{err('price')}</small>{/if}
           {#if app.priceStatus === 'error' && app.priceMessage}<small class="error" role="alert">{app.priceMessage}</small>{/if}
